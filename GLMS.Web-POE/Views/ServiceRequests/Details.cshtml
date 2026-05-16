@@ -1,0 +1,114 @@
+﻿@model GLMS.Web_POE.Models.ServiceRequest
+
+@{
+    ViewData["Title"] = "Service Request Details";
+}
+
+<div class="container mt-5">
+    <h1 class="mb-4">Service Request Details</h1>
+
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">Service Request Information</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row mb-3">
+                        <div class="col-sm-3 fw-bold">Description:</div>
+                        <div class="col-sm-9">@Model.Description</div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-sm-3 fw-bold">Contract:</div>
+                        <div class="col-sm-9">
+                            @if (Model.Contract != null)
+                            {
+                                <a asp-controller="Contracts" asp-action="Details" asp-route-id="@Model.Contract.Id">
+                                    @Model.Contract.ServiceLevel
+                                </a>
+                                <br />
+                                <small class="text-muted">
+                                    @{
+                                        var contractStatusClass = Model.Contract.Status switch
+                                        {
+                                            GLMS.Web_POE.Models.ContractStatus.Draft => "badge bg-secondary",
+                                            GLMS.Web_POE.Models.ContractStatus.Active => "badge bg-success",
+                                            GLMS.Web_POE.Models.ContractStatus.Expired => "badge bg-danger",
+                                            GLMS.Web_POE.Models.ContractStatus.OnHold => "badge bg-warning",
+                                            _ => "badge bg-light text-dark"
+                                        };
+                                    }
+                                    Contract Status: <span class="@contractStatusClass">@Model.Contract.Status</span>
+                                </small>
+                            }
+                        </div>
+                    </div>
+
+                    <hr />
+
+                    <div class="row mb-3">
+                        <div class="col-sm-3 fw-bold">Amount (USD):</div>
+                        <div class="col-sm-9">
+                            @if (Model.AmountUsd.HasValue)
+                            {
+                                <strong class="text-primary">$@Model.AmountUsd.Value.ToString("F2")</strong>
+                            }
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-sm-3 fw-bold">Exchange Rate:</div>
+                        <div class="col-sm-9">
+                            @if (Model.ExchangeRate.HasValue)
+                            {
+                                <span>1 USD = @Model.ExchangeRate.Value.ToString("F4") ZAR</span>
+                            }
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-sm-3 fw-bold">Cost (ZAR):</div>
+                        <div class="col-sm-9">
+                            <strong class="text-success h5">R @Model.Cost.ToString("F2")</strong>
+                        </div>
+                    </div>
+
+                    <hr />
+
+                    <div class="row mb-3">
+                        <div class="col-sm-3 fw-bold">Request Status:</div>
+                        <div class="col-sm-9">
+                            @{
+                                var statusClass = Model.Status switch
+                                {
+                                    GLMS.Web_POE.Models.ServiceRequestStatus.Pending => "badge bg-warning",
+                                    GLMS.Web_POE.Models.ServiceRequestStatus.Approved => "badge bg-info",
+                                    GLMS.Web_POE.Models.ServiceRequestStatus.InProgress => "badge bg-primary",
+                                    GLMS.Web_POE.Models.ServiceRequestStatus.Completed => "badge bg-success",
+                                    GLMS.Web_POE.Models.ServiceRequestStatus.Rejected => "badge bg-danger",
+                                    _ => "badge bg-light"
+                                };
+                            }
+                            <span class="@statusClass">@Model.Status</span>
+                        </div>
+                    </div>
+
+                    <div class="row mb-3">
+                        <div class="col-sm-3 fw-bold">Created:</div>
+                        <div class="col-sm-9">@Model.CreatedAt.ToString("MMMM dd, yyyy HH:mm")</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="mt-4">
+        <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning">
+            <i class="fas fa-edit"></i> Edit
+        </a>
+        <a asp-action="Index" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Back to List
+        </a>
+    </div>
+</div>

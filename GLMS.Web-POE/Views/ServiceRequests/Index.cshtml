@@ -1,0 +1,131 @@
+﻿@model IEnumerable<GLMS.Web_POE.Models.ServiceRequest>
+
+@{
+    ViewData["Title"] = "Service Requests Management";
+}
+
+<div class="mb-4">
+    <div class="d-flex justify-content-between align-items-center">
+        <div>
+            <h1 class="mb-1">Service Requests</h1>
+            <p class="text-muted mb-0">Track and manage all service requests with automatic currency conversion.</p>
+        </div>
+        <a asp-action="Create" class="btn btn-primary">
+            <i class="fas fa-plus me-2"></i>Create New Request
+        </a>
+    </div>
+</div>
+
+@if (Model.Any())
+{
+    <div class="table-responsive">
+        <table class="table table-hover">
+            <thead class="table-dark">
+                <tr>
+                    <th>
+                        <i class="fas fa-file-text me-2"></i>Description
+                    </th>
+                    <th>
+                        <i class="fas fa-layer-group me-2"></i>Contract Level
+                    </th>
+                    <th class="text-end">
+                        <i class="fas fa-dollar-sign me-2"></i>Amount (USD)
+                    </th>
+                    <th class="text-end">
+                        <i class="fas fa-exchange-alt me-2"></i>Rate
+                    </th>
+                    <th class="text-end">
+                        <i class="fas fa-rand me-2"></i>Cost (ZAR)
+                    </th>
+                    <th>
+                        <i class="fas fa-tasks me-2"></i>Status
+                    </th>
+                    <th>
+                        <i class="fas fa-calendar me-2"></i>Created
+                    </th>
+                    <th style="width: 200px;">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                @foreach (var item in Model)
+                {
+                    <tr>
+                        <td>
+                            <strong>@Html.DisplayFor(modelItem => item.Description)</strong>
+                        </td>
+                        <td>
+                            @if (item.Contract != null)
+                            {
+                                <span class="badge bg-info">@Html.DisplayFor(modelItem => item.Contract.ServiceLevel)</span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-light text-dark">N/A</span>
+                            }
+                        </td>
+                        <td class="text-end">
+                            @if (item.AmountUsd.HasValue)
+                            {
+                                <strong class="text-primary">$@item.AmountUsd.Value.ToString("F2")</strong>
+                            }
+                            else
+                            {
+                                <span class="text-muted">-</span>
+                            }
+                        </td>
+                        <td class="text-end">
+                            @if (item.ExchangeRate.HasValue)
+                            {
+                                <small class="text-muted">@item.ExchangeRate.Value.ToString("F4")</small>
+                            }
+                            else
+                            {
+                                <span class="text-muted">-</span>
+                            }
+                        </td>
+                        <td class="text-end">
+                            <strong class="text-success">R @item.Cost.ToString("F2")</strong>
+                        </td>
+                        <td>
+                            @{
+                                var statusClass = item.Status switch
+                                {
+                                    GLMS.Web_POE.Models.ServiceRequestStatus.Pending => "badge bg-warning",
+                                    GLMS.Web_POE.Models.ServiceRequestStatus.Approved => "badge bg-info",
+                                    GLMS.Web_POE.Models.ServiceRequestStatus.InProgress => "badge bg-primary",
+                                    GLMS.Web_POE.Models.ServiceRequestStatus.Completed => "badge bg-success",
+                                    GLMS.Web_POE.Models.ServiceRequestStatus.Rejected => "badge bg-danger",
+                                    _ => "badge bg-light text-dark"
+                                };
+                            }
+                            <span class="@statusClass">@item.Status.ToString()</span>
+                        </td>
+                        <td>
+                            <small class="text-muted">@Html.DisplayFor(modelItem => item.CreatedAt)</small>
+                        </td>
+                        <td>
+                            <div class="btn-group btn-group-sm" role="group">
+                                <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-outline-info" title="View">
+                                    <i class="fas fa-eye"></i> View
+                                </a>
+                                <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-outline-warning" title="Edit">
+                                    <i class="fas fa-edit"></i> Edit
+                                </a>
+                                <a asp-action="Delete" asp-route-id="@item.Id" class="btn btn-outline-danger" title="Delete">
+                                    <i class="fas fa-trash"></i> Delete
+                                </a>
+                            </div>
+                        </td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+else
+{
+    <div class="alert alert-info border-0" role="alert">
+        <i class="fas fa-info-circle me-2"></i>
+        No service requests found. <a asp-action="Create" class="alert-link">Create a new service request</a> to get started.
+    </div>
+}
