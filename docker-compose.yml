@@ -1,0 +1,79 @@
+﻿version: '3.8'
+
+services:
+  # SQL Server Database Container
+  sql-server-db:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    container_name: glms-sql-server
+    environment:
+      ACCEPT_EULA: "Y"
+      SA_PASSWORD: "YourPassword123!"
+      MSSQL_TCP_PORT: 1433
+    ports:
+      - "1433:1433"
+    volumes:
+      - sql-data:/var/opt/mssql
+    networks:
+      - glms-network
+    restart: unless-stopped
+
+  # Web API Container
+  glms-backend-api:
+    build:
+      context: .
+      dockerfile: Dockerfile.api
+    container_name: glms-backend-api
+    depends_on:
+      sql-server-db:
+        condition: service_started
+    environment:
+      ASPNETCORE_ENVIRONMENT: "Production"
+      ASPNETCORE_URLS: "http://+:7001"
+      ConnectionStrings__DefaultConnection: "Server=sql-server-db;Database=GLMS;User Id=sa;Password=YourPassword123!;TrustServerCertificate=true;"
+      JwtSettings__SecretKey: "your-super-secret-key-change-in-production-at-least-32-characters"
+      JwtSettings__Issuer: "GLMS"
+      JwtSettings__Audience: "GLMSUsers"
+      JwtSettings__ExpirationMinutes: "60"
+    ports:
+      - "7001:7001"
+    networks:
+      - glms-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:7001/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # MVC Web Frontend Container
+  glms-frontend-web:
+    build:
+      context: .
+      dockerfile: Dockerfile.web
+    container_name: glms-frontend-web
+    depends_on:
+      - glms-backend-api
+    environment:
+      ASPNETCORE_ENVIRONMENT: "Production"
+      ASPNETCORE_URLS: "http://+:80"
+      ApiSettings__BaseUrl: "http://glms-backend-api:7001"
+    ports:
+      - "80:80"
+    networks:
+      - glms-network
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:80/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+volumes:
+  sql-data:
+    driver: local
+
+networks:
+  glms-network:
+    driver: bridge

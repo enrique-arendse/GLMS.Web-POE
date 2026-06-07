@@ -1,75 +1,209 @@
 ﻿@model IEnumerable<GLMS.Web_POE.Models.Client>
 
 @{
-    ViewData["Title"] = "Clients Management";
+    ViewData["Title"] = "Clients Management - TechMove Logistics";
 }
 
-<div class="mb-4">
-    <div class="d-flex justify-content-between align-items-center">
+<!-- Page Header -->
+<div class="page-header" style="background-image: url('/images/pages/clients-banner.png'); background-size: cover; background-position: center 35%; border-radius: 0.75rem; padding: 7.5rem 2rem; color: white;">
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
         <div>
-            <h1 class="mb-1">Clients</h1>
-            <p class="text-muted mb-0">Manage and organize all client information in one place.</p>
+            <h1 class="mb-2" style="color: white !important;">
+                <i class="fa-solid fa-people-group me-2"></i>Clients Management
+            </h1>
+            <p class="mb-0" style="color: rgba(255,255,255,0.85) !important;">
+                Organize and manage all client information across regions and service areas.
+            </p>
         </div>
-        <a asp-action="Create" class="btn btn-primary">
-            <i class="fas fa-plus me-2"></i>Create New Client
+        <a asp-action="Create" class="btn btn-primary btn-lg">
+            <i class="fa-solid fa-plus me-2"></i>Add New Client
         </a>
+    </div>
+</div>
+
+<!-- Search and Filter Bar -->
+<div class="card mb-4 border-0">
+    <div class="card-body">
+        <div class="row g-3 align-items-end">
+            <div class="col-md-6">
+                <label class="form-label fw-600">Search Clients</label>
+                <div class="search-box">
+                    <i class="fa-solid fa-magnifying-glass"></i>
+                    <input type="text" class="form-control" id="searchInput" placeholder="Search by name, contact details, or region...">
+                </div>
+            </div>
+            <div class="col-md-3">
+                <label class="form-label fw-600">Filter by Region</label>
+                <select class="form-select" id="regionFilter">
+                    <option value="">All Regions</option>
+                    <option value="North Africa">North Africa</option>
+                    <option value="West Africa">West Africa</option>
+                    <option value="East Africa">East Africa</option>
+                    <option value="Southern Africa">Southern Africa</option>
+                    <option value="Asia">Asia</option>
+                    <option value="Europe">Europe</option>
+                    <option value="Americas">Americas</option>
+                </select>
+            </div>
+            <div class="col-md-3 text-md-end">
+                <button class="btn btn-outline-secondary me-2" onclick="resetFilters()">
+                    <i class="fa-solid fa-rotate-right me-2"></i>Reset
+                </button>
+                <button class="btn btn-secondary" onclick="exportData()">
+                    <i class="fa-solid fa-download me-2"></i>Export
+                </button>
+            </div>
+        </div>
     </div>
 </div>
 
 @if (Model.Any())
 {
-    <div class="table-responsive">
-        <table class="table table-hover">
-            <thead class="table-dark">
-                <tr>
-                    <th>
-                        <i class="fas fa-user me-2"></i>Name
-                    </th>
-                    <th>
-                        <i class="fas fa-phone me-2"></i>Contact Details
-                    </th>
-                    <th>
-                        <i class="fas fa-map-marker-alt me-2"></i>Region
-                    </th>
-                    <th style="width: 200px;">Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                @foreach (var item in Model)
-                {
-                    <tr>
-                        <td>
-                            <strong>@Html.DisplayFor(modelItem => item.Name)</strong>
-                        </td>
-                        <td>
-                            <small>@Html.DisplayFor(modelItem => item.ContactDetails)</small>
-                        </td>
-                        <td>
-                            <span class="badge bg-info">@Html.DisplayFor(modelItem => item.Region)</span>
-                        </td>
-                        <td>
-                            <div class="btn-group btn-group-sm" role="group">
-                                <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-outline-info" title="View">
-                                    <i class="fas fa-eye"></i> View
-                                </a>
-                                <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-outline-warning" title="Edit">
-                                    <i class="fas fa-edit"></i> Edit
-                                </a>
-                                <a asp-action="Delete" asp-route-id="@item.Id" class="btn btn-outline-danger" title="Delete">
-                                    <i class="fas fa-trash"></i> Delete
-                                </a>
-                            </div>
-                        </td>
-                    </tr>
-                }
-            </tbody>
-        </table>
+    <!-- Stats Bar -->
+    <div class="row g-3 mb-4">
+        <div class="col-md-3">
+            <div class="stat-card">
+                <div class="stat-number">@Model.Count()</div>
+                <div class="stat-label">Total Clients</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card">
+                <div class="stat-number">@Model.GroupBy(c => c.Region).Count()</div>
+                <div class="stat-label">Service Regions</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card">
+                <div class="stat-number">@Model.Count(c => !string.IsNullOrEmpty(c.ContactDetails))</div>
+                <div class="stat-label">Active Contacts</div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="stat-card">
+                <div class="stat-number">100%</div>
+                <div class="stat-label">Data Coverage</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Clients Table -->
+    <div class="card border-0">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead>
+                        <tr>
+                            <th class="text-start">
+                                <i class="fa-solid fa-building me-2"></i>Client Name
+                            </th>
+                            <th class="text-start">
+                                <i class="fa-solid fa-phone me-2"></i>Contact Details
+                            </th>
+                            <th class="text-center">
+                                <i class="fa-solid fa-globe me-2"></i>Region
+                            </th>
+                            <th class="text-center" style="width: 200px;">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var item in Model)
+                        {
+                            <tr class="client-row" data-name="@item.Name" data-region="@item.Region" data-contact="@item.ContactDetails">
+                                <td class="text-start">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <div class="avatar-placeholder rounded-circle bg-primary bg-opacity-10 p-2">
+                                            <i class="fa-solid fa-user text-primary"></i>
+                                        </div>
+                                        <div>
+                                            <strong>@Html.DisplayFor(modelItem => item.Name)</strong>
+                                        </div>
+                                    </div>
+                                </td>
+                                <td class="text-start">
+                                    <small class="text-muted">@Html.DisplayFor(modelItem => item.ContactDetails)</small>
+                                </td>
+                                <td class="text-center">
+                                    <span class="badge bg-info">@Html.DisplayFor(modelItem => item.Region)</span>
+                                </td>
+                                <td class="text-center">
+                                    <div class="btn-group" role="group">
+                                        <a asp-action="Details" asp-route-id="@item.Id" class="btn btn-sm btn-outline-primary" title="View details">
+                                            <i class="fa-solid fa-eye me-1"></i>View
+                                        </a>
+                                        <a asp-action="Edit" asp-route-id="@item.Id" class="btn btn-sm btn-outline-secondary" title="Edit">
+                                            <i class="fa-solid fa-pencil me-1"></i>Edit
+                                        </a>
+                                        <a asp-action="Delete" asp-route-id="@item.Id" class="btn btn-sm btn-outline-danger" title="Delete">
+                                            <i class="fa-solid fa-trash me-1"></i>Delete
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- Pagination Info -->
+    <div class="d-flex justify-content-between align-items-center mt-4">
+        <small class="text-muted">Showing @Model.Count() clients</small>
+        <nav aria-label="Page navigation">
+            <ul class="pagination mb-0">
+                <li class="page-item"><a class="page-link" href="#">Previous</a></li>
+                <li class="page-item active"><a class="page-link" href="#">1</a></li>
+                <li class="page-item"><a class="page-link" href="#">2</a></li>
+                <li class="page-item"><a class="page-link" href="#">Next</a></li>
+            </ul>
+        </nav>
     </div>
 }
 else
 {
-    <div class="alert alert-info border-0" role="alert">
-        <i class="fas fa-info-circle me-2"></i>
-        No clients found. <a asp-action="Create" class="alert-link">Create a new client</a> to get started.
+    <!-- Empty State -->
+    <div class="alert alert-info border-0 py-5" role="alert">
+        <div class="text-center">
+            <i class="fa-solid fa-inbox fa-3x text-info mb-3 d-block"></i>
+            <h4 class="mb-2">No Clients Found</h4>
+            <p class="text-muted mb-4">Get started by creating your first client profile to begin managing your logistics operations.</p>
+            <a asp-action="Create" class="btn btn-primary">
+                <i class="fa-solid fa-plus me-2"></i>Create Your First Client
+            </a>
+        </div>
     </div>
 }
+
+<script>
+    // Client search and filter functionality
+    document.getElementById('searchInput')?.addEventListener('keyup', filterClients);
+    document.getElementById('regionFilter')?.addEventListener('change', filterClients);
+
+    function filterClients() {
+        const searchTerm = document.getElementById('searchInput')?.value.toLowerCase() || '';
+        const regionFilter = document.getElementById('regionFilter')?.value || '';
+        const rows = document.querySelectorAll('.client-row');
+
+        rows.forEach(row => {
+            const name = row.getAttribute('data-name').toLowerCase();
+            const region = row.getAttribute('data-region');
+            const contact = row.getAttribute('data-contact').toLowerCase();
+
+            const matchesSearch = name.includes(searchTerm) || contact.includes(searchTerm);
+            const matchesRegion = !regionFilter || region === regionFilter;
+
+            row.style.display = matchesSearch && matchesRegion ? '' : 'none';
+        });
+    }
+
+    function resetFilters() {
+        document.getElementById('searchInput').value = '';
+        document.getElementById('regionFilter').value = '';
+        filterClients();
+    }
+
+    function exportData() {
+        alert('Export functionality coming soon!');
+    }
+</script>

@@ -25,4 +25,10 @@
     <PackageReference Include="NuGet.Protocol" Version="7.3.1" />
   </ItemGroup>
 
+  <!-- Exclude appsettings files from being published when referenced by other projects -->
+  <ItemGroup>
+    <Content Remove="appsettings.json" />
+    <Content Remove="appsettings.Development.json" />
+  </ItemGroup>
+
 </Project>

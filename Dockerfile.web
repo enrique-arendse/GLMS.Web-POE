@@ -1,0 +1,45 @@
+# Build stage
+FROM mcr.microsoft.com/dotnet/sdk:10.0 AS build
+WORKDIR /src
+
+# Copy project files
+COPY ["GLMS.Web-POE/GLMS.Web-POE.csproj", "GLMS.Web-POE/"]
+
+# Restore dependencies
+RUN dotnet restore "GLMS.Web-POE/GLMS.Web-POE.csproj"
+
+# Copy source code
+COPY ["GLMS.Web-POE/", "GLMS.Web-POE/"]
+
+# Build the application
+RUN dotnet build "GLMS.Web-POE/GLMS.Web-POE.csproj" -c Release -o /app/build
+
+# Publish stage
+FROM build AS publish
+RUN dotnet publish "GLMS.Web-POE/GLMS.Web-POE.csproj" -c Release -o /app/publish
+
+# Runtime stage
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS runtime
+WORKDIR /app
+
+# Install runtime dependencies
+RUN apt-get update && apt-get install -y \
+	curl \
+	&& rm -rf /var/lib/apt/lists/*
+
+COPY --from=publish /app/publish .
+
+# Create upload directory for file storage
+RUN mkdir -p /app/wwwroot/uploads/agreements
+
+# Set environment variables
+ENV ASPNETCORE_ENVIRONMENT=Production
+ENV ASPNETCORE_URLS=http://+:80
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=40s --retries=3 \
+	CMD curl -f http://localhost:80/ || exit 1
+
+EXPOSE 80
+
+ENTRYPOINT ["dotnet", "GLMS.Web-POE.dll"]

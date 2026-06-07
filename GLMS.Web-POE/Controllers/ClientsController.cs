@@ -3,155 +3,157 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Rendering;
-using Microsoft.EntityFrameworkCore;
-using GLMS.Web_POE.Data;
 using GLMS.Web_POE.Models;
+using GLMS.Web_POE.Services;
 
 namespace GLMS.Web_POE.Controllers
 {
     public class ClientsController : Controller
     {
-        private readonly ApplicationDbContext _context;
+        private readonly IApiClientService _apiClientService;
+        private readonly ILogger<ClientsController> _logger;
 
-        public ClientsController(ApplicationDbContext context)
+        public ClientsController(IApiClientService apiClientService, ILogger<ClientsController> logger)
         {
-            _context = context;
+            _apiClientService = apiClientService;
+            _logger = logger;
         }
 
-        // GET: Clients
         public async Task<IActionResult> Index()
         {
-            return View(await _context.Clients.ToListAsync());
+            try
+            {
+                var clients = await _apiClientService.GetClientsAsync();
+                return View(clients);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Error loading clients: {ex.Message}");
+                ModelState.AddModelError("", "Error loading clients from API");
+                return View(new List<Client>());
+            }
         }
 
-        // GET: Clients/Details/5
         public async Task<IActionResult> Details(int? id)
         {
             if (id == null)
+                return NotFound();
+
+            try
             {
+                var client = await _apiClientService.GetClientAsync(id.Value);
+                if (client == null)
+                    return NotFound();
+                return View(client);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Error loading client: {ex.Message}");
                 return NotFound();
             }
-
-            var client = await _context.Clients
-                .FirstOrDefaultAsync(m => m.Id == id);
-            if (client == null)
-            {
-                return NotFound();
-            }
-
-            return View(client);
         }
 
-        // GET: Clients/Create
         public IActionResult Create()
         {
             return View();
         }
 
-        // POST: Clients/Create
-        // To protect from overposting attacks, enable the specific properties you want to bind to.
-        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create([Bind("Id,Name,ContactDetails,Region")] Client client)
+        public async Task<IActionResult> Create([Bind("Name,ContactDetails,Region")] Client client)
         {
             if (ModelState.IsValid)
             {
-                _context.Add(client);
-                await _context.SaveChangesAsync();
-                return RedirectToAction(nameof(Index));
+                try
+                {
+                    await _apiClientService.CreateClientAsync(client);
+                    return RedirectToAction(nameof(Index));
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError($"Error creating client: {ex.Message}");
+                    ModelState.AddModelError("", "Error creating client");
+                }
             }
             return View(client);
         }
 
-        // GET: Clients/Edit/5
         public async Task<IActionResult> Edit(int? id)
         {
             if (id == null)
-            {
                 return NotFound();
-            }
 
-            var client = await _context.Clients.FindAsync(id);
-            if (client == null)
+            try
             {
+                var client = await _apiClientService.GetClientAsync(id.Value);
+                if (client == null)
+                    return NotFound();
+                return View(client);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Error loading client: {ex.Message}");
                 return NotFound();
             }
-            return View(client);
         }
 
-        // POST: Clients/Edit/5
-        // To protect from overposting attacks, enable the specific properties you want to bind to.
-        // For more details, see http://go.microsoft.com/fwlink/?LinkId=317598.
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(int id, [Bind("Id,Name,ContactDetails,Region")] Client client)
         {
             if (id != client.Id)
-            {
                 return NotFound();
-            }
 
             if (ModelState.IsValid)
             {
                 try
                 {
-                    _context.Update(client);
-                    await _context.SaveChangesAsync();
+                    await _apiClientService.UpdateClientAsync(id, client);
+                    return RedirectToAction(nameof(Index));
                 }
-                catch (DbUpdateConcurrencyException)
+                catch (Exception ex)
                 {
-                    if (!ClientExists(client.Id))
-                    {
-                        return NotFound();
-                    }
-                    else
-                    {
-                        throw;
-                    }
+                    _logger.LogError($"Error updating client: {ex.Message}");
+                    ModelState.AddModelError("", "Error updating client");
                 }
-                return RedirectToAction(nameof(Index));
             }
             return View(client);
         }
 
-        // GET: Clients/Delete/5
         public async Task<IActionResult> Delete(int? id)
         {
             if (id == null)
+                return NotFound();
+
+            try
             {
+                var client = await _apiClientService.GetClientAsync(id.Value);
+                if (client == null)
+                    return NotFound();
+                return View(client);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError($"Error loading client: {ex.Message}");
                 return NotFound();
             }
-
-            var client = await _context.Clients
-                .FirstOrDefaultAsync(m => m.Id == id);
-            if (client == null)
-            {
-                return NotFound();
-            }
-
-            return View(client);
         }
 
-        // POST: Clients/Delete/5
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
         {
-            var client = await _context.Clients.FindAsync(id);
-            if (client != null)
+            try
             {
-                _context.Clients.Remove(client);
+                await _apiClientService.DeleteClientAsync(id);
+                return RedirectToAction(nameof(Index));
             }
-
-            await _context.SaveChangesAsync();
-            return RedirectToAction(nameof(Index));
-        }
-
-        private bool ClientExists(int id)
-        {
-            return _context.Clients.Any(e => e.Id == id);
+            catch (Exception ex)
+            {
+                _logger.LogError($"Error deleting client: {ex.Message}");
+                ModelState.AddModelError("", "Error deleting client");
+                return RedirectToAction(nameof(Index));
+            }
         }
     }
 }

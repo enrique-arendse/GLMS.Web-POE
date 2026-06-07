@@ -1,24 +1,72 @@
 ﻿@{
-    ViewData["Title"] = "Dashboard";
+    ViewData["Title"] = "Dashboard - TechMove Logistics";
 }
 
-<!-- Page Header -->
-<div class="mb-5">
-    <h1 class="mb-2">Dashboard</h1>
-    <p class="text-muted">Welcome to the Global Logistics Management System. Manage your clients, contracts, and service requests all in one place.</p>
+<!-- Hero Banner -->
+<div class="hero-banner" style="background-image: url('/images/hero/logistics-banner.png');">
+    <div class="hero-content">
+        <h1 class="hero-title">Welcome to TechMove Logistics</h1>
+        <p class="hero-subtitle">Streamline your freight management with intelligent logistics coordination. Manage contracts, clients, and service requests all in one powerful platform.</p>
+        <div class="d-flex gap-3 flex-wrap">
+            <a asp-controller="ServiceRequests" asp-action="Create" class="btn btn-light btn-lg">
+                <i class="fa-solid fa-plus me-2"></i>Create Service Request
+            </a>
+            <a href="javascript:void(0);" onclick="alert('Documentation coming soon')" class="btn btn-outline-light btn-lg">
+                <i class="fa-solid fa-book me-2"></i>Learn More
+            </a>
+        </div>
+    </div>
 </div>
 
-<!-- Main Cards -->
+<!-- Statistics Section -->
 <div class="row g-4 mb-5">
+    <div class="col-lg-3 col-sm-6">
+        <div class="stat-card">
+            <div class="stat-number">2,847</div>
+            <div class="stat-label">Total Clients</div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-sm-6">
+        <div class="stat-card">
+            <div class="stat-number">563</div>
+            <div class="stat-label">Active Contracts</div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-sm-6">
+        <div class="stat-card">
+            <div class="stat-number">1,294</div>
+            <div class="stat-label">Requests This Month</div>
+        </div>
+    </div>
+    <div class="col-lg-3 col-sm-6">
+        <div class="stat-card">
+            <div class="stat-number">99.8%</div>
+            <div class="stat-label">System Uptime</div>
+        </div>
+    </div>
+</div>
+
+<!-- Main Features Section -->
+<div class="mb-5">
+    <div class="page-header">
+        <h2 class="mb-1">Core Features</h2>
+        <p class="text-muted">Access key modules to manage your logistics operations</p>
+    </div>
+</div>
+
+<div class="row g-4 mb-5">
+    <!-- Clients Card -->
     <div class="col-lg-4 col-md-6">
-        <div class="card h-100 shadow-sm border-0">
+        <div class="card h-100 hover-lift">
             <div class="card-body d-flex flex-column">
-                <div class="mb-3">
-                    <i class="fa-solid fa-user fa-2x text-primary"></i>
+                <div class="card-icon mb-3">
+                    <i class="fa-solid fa-people-group"></i>
                 </div>
-                <h5 class="card-title fw-bold">Clients</h5>
-                <p class="card-text text-muted flex-grow-1">Create and manage client information, contact details, and service regions.</p>
-                <div class="d-flex gap-2 mt-auto">
+                <h5 class="card-title fw-bold mb-2">Client Management</h5>
+                <p class="card-text text-muted flex-grow-1">
+                    Create and manage client information, contact details, service regions, and maintain comprehensive client profiles for streamlined communication.
+                </p>
+                <div class="d-flex gap-2 mt-auto pt-3">
                     <a asp-controller="Clients" asp-action="Index" class="btn btn-primary btn-sm flex-grow-1">
                         <i class="fa-solid fa-list me-1"></i>View All
                     </a>
@@ -30,15 +78,18 @@
         </div>
     </div>
 
+    <!-- Contracts Card -->
     <div class="col-lg-4 col-md-6">
-        <div class="card h-100 shadow-sm border-0">
+        <div class="card h-100 hover-lift">
             <div class="card-body d-flex flex-column">
-                <div class="mb-3">
-                    <i class="fa-solid fa-file-contract fa-2x" style="color: #20c997;"></i>
+                <div class="card-icon mb-3" style="background: linear-gradient(135deg, #06a77d 0%, #20c997 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">
+                    <i class="fa-solid fa-file-contract"></i>
                 </div>
-                <h5 class="card-title fw-bold">Contracts</h5>
-                <p class="card-text text-muted flex-grow-1">Create contracts, manage service levels, upload signed agreements, and track expiration dates.</p>
-                <div class="d-flex gap-2 mt-auto">
+                <h5 class="card-title fw-bold mb-2">Contract Management</h5>
+                <p class="card-text text-muted flex-grow-1">
+                    Create and manage freight contracts, track service levels, upload signed agreements, and receive alerts for expiration dates.
+                </p>
+                <div class="d-flex gap-2 mt-auto pt-3">
                     <a asp-controller="Contracts" asp-action="Index" class="btn btn-primary btn-sm flex-grow-1">
                         <i class="fa-solid fa-list me-1"></i>View All
                     </a>
@@ -50,15 +101,18 @@
         </div>
     </div>
 
+    <!-- Service Requests Card -->
     <div class="col-lg-4 col-md-6">
-        <div class="card h-100 shadow-sm border-0">
+        <div class="card h-100 hover-lift">
             <div class="card-body d-flex flex-column">
-                <div class="mb-3">
-                    <i class="fa-solid fa-clipboard-list fa-2x" style="color: #fd7e14;"></i>
+                <div class="card-icon mb-3" style="background: linear-gradient(135deg, #ff6b35 0%, #fd7e14 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; background-clip: text;">
+                    <i class="fa-solid fa-tasks"></i>
                 </div>
-                <h5 class="card-title fw-bold">Service Requests</h5>
-                <p class="card-text text-muted flex-grow-1">Create and track service requests with automatic currency conversion between USD and ZAR.</p>
-                <div class="d-flex gap-2 mt-auto">
+                <h5 class="card-title fw-bold mb-2">Service Requests</h5>
+                <p class="card-text text-muted flex-grow-1">
+                    Create and track service requests with real-time status updates, automatic currency conversion between USD and ZAR, and comprehensive invoice management.
+                </p>
+                <div class="d-flex gap-2 mt-auto pt-3">
                     <a asp-controller="ServiceRequests" asp-action="Index" class="btn btn-primary btn-sm flex-grow-1">
                         <i class="fa-solid fa-list me-1"></i>View All
                     </a>
@@ -70,4 +124,128 @@
         </div>
     </div>
 </div>
-         
+
+<!-- Quick Actions Section -->
+<div class="row g-4 mb-5">
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header">
+                <i class="fa-solid fa-lightning-bolt me-2"></i>Quick Actions
+            </div>
+            <div class="card-body">
+                <div class="list-group list-group-flush">
+                    <a href="javascript:void(0);" onclick="alert('Feature coming soon')" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-3 px-0 border-bottom">
+                        <div>
+                            <strong>Create New Contract</strong>
+                            <small class="d-block text-muted">Start a new freight agreement</small>
+                        </div>
+                        <i class="fa-solid fa-chevron-right text-muted"></i>
+                    </a>
+                    <a href="javascript:void(0);" onclick="alert('Feature coming soon')" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-3 px-0 border-bottom">
+                        <div>
+                            <strong>Schedule Driver Pickup</strong>
+                            <small class="d-block text-muted">Coordinate driver assignments</small>
+                        </div>
+                        <i class="fa-solid fa-chevron-right text-muted"></i>
+                    </a>
+                    <a href="javascript:void(0);" onclick="alert('Feature coming soon')" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-3 px-0">
+                        <div>
+                            <strong>Generate Report</strong>
+                            <small class="d-block text-muted">Create service and invoice reports</small>
+                        </div>
+                        <i class="fa-solid fa-chevron-right text-muted"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="col-lg-6">
+        <div class="card">
+            <div class="card-header">
+                <i class="fa-solid fa-circle-info me-2"></i>Recent Updates
+            </div>
+            <div class="card-body">
+                <div class="timeline">
+                    <div class="timeline-item d-flex gap-3 pb-3 border-bottom">
+                        <div class="timeline-icon flex-shrink-0">
+                            <span class="badge bg-success rounded-circle p-2">
+                                <i class="fa-solid fa-check"></i>
+                            </span>
+                        </div>
+                        <div class="flex-grow-1">
+                            <strong>Contract Approved</strong>
+                            <small class="d-block text-muted">ContractID: #CH-2026-001</small>
+                            <small class="text-muted">2 hours ago</small>
+                        </div>
+                    </div>
+                    <div class="timeline-item d-flex gap-3 pb-3 border-bottom">
+                        <div class="timeline-icon flex-shrink-0">
+                            <span class="badge bg-info rounded-circle p-2">
+                                <i class="fa-solid fa-truck"></i>
+                            </span>
+                        </div>
+                        <div class="flex-grow-1">
+                            <strong>New Service Request</strong>
+                            <small class="d-block text-muted">Expedited Shipment - ZAR 15,500</small>
+                            <small class="text-muted">5 hours ago</small>
+                        </div>
+                    </div>
+                    <div class="timeline-item d-flex gap-3">
+                        <div class="timeline-icon flex-shrink-0">
+                            <span class="badge bg-warning rounded-circle p-2">
+                                <i class="fa-solid fa-exclamation"></i>
+                            </span>
+                        </div>
+                        <div class="flex-grow-1">
+                            <strong>Contract Expiring Soon</strong>
+                            <small class="d-block text-muted">ContractID: #CH-2025-456</small>
+                            <small class="text-muted">1 day ago</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Benefits Section -->
+<div class="row g-4">
+    <div class="col-12">
+        <div class="card bg-light border-0">
+            <div class="card-body text-center py-5">
+                <h3 class="mb-4">Why Choose TechMove Logistics?</h3>
+                <div class="row g-4">
+                    <div class="col-lg-3 col-sm-6">
+                        <div class="mb-3">
+                            <i class="fa-solid fa-bolt fa-2x text-primary mb-3"></i>
+                            <h6 class="fw-bold">Lightning Fast</h6>
+                            <small class="text-muted">Real-time updates and instant notifications</small>
+                        </div>
+                    </div>
+                    <div class="col-lg-3 col-sm-6">
+                        <div class="mb-3">
+                            <i class="fa-solid fa-shield-halved fa-2x text-primary mb-3"></i>
+                            <h6 class="fw-bold">Secure & Compliant</h6>
+                            <small class="text-muted">Enterprise-grade security and compliance</small>
+                        </div>
+                    </div>
+                    <div class="col-lg-3 col-sm-6">
+                        <div class="mb-3">
+                            <i class="fa-solid fa-users-gear fa-2x text-primary mb-3"></i>
+                            <h6 class="fw-bold">Team Collaboration</h6>
+                            <small class="text-muted">Seamless communication and coordination</small>
+                        </div>
+                    </div>
+                    <div class="col-lg-3 col-sm-6">
+                        <div class="mb-3">
+                            <i class="fa-solid fa-chart-line fa-2x text-primary mb-3"></i>
+                            <h6 class="fw-bold">Analytics</h6>
+                            <small class="text-muted">Comprehensive insights and reporting</small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
