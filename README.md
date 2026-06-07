@@ -125,7 +125,7 @@ dotnet test
 
 ## Project Structure
 
-`
+```text
 GLMS.Web-POE/
 ├── GLMS.Web-POE/              # MVC Frontend
 │   ├── Controllers/
@@ -140,7 +140,7 @@ GLMS.Web-POE/
 ├── GLMS.Tests/                # Integration tests
 ├── docker-compose.yml
 └── README.md
-`
+```
 
 ## Deployment
 
