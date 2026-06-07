@@ -1,4 +1,4 @@
-﻿# GLMS - Global Logistics Management System
+﻿# TechMove Logistics (Global Logistics Management System)
 
 Service-Oriented Architecture with REST API, Docker containerization, and automated testing.
 
