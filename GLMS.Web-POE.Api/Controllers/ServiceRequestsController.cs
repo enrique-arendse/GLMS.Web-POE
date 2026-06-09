@@ -24,7 +24,7 @@ namespace GLMS.Web_POE.Api.Controllers
             [FromQuery] int? contractId = null,
             [FromQuery] int? status = null)
         {
-            var query = _context.ServiceRequests.AsQueryable();
+            var query = _context.ServiceRequests.Include(sr => sr.Contract).AsQueryable();
 
             if (contractId.HasValue)
                 query = query.Where(sr => sr.ContractId == contractId.Value);
@@ -38,6 +38,7 @@ namespace GLMS.Web_POE.Api.Controllers
             {
                 Id = sr.Id,
                 ContractId = sr.ContractId,
+                ContractServiceLevel = sr.Contract?.ServiceLevel,
                 Description = sr.Description,
                 Cost = sr.Cost,
                 Status = (int)sr.Status,
@@ -52,16 +53,20 @@ namespace GLMS.Web_POE.Api.Controllers
         [HttpGet("{id}")]
         public async Task<ActionResult<ServiceRequestDto>> GetServiceRequest(int id)
         {
-            var serviceRequest = await _context.ServiceRequests.FindAsync(id);
+			var serviceRequest = await _context.ServiceRequests
+	            .Include(sr => sr.Contract)
+	            .FirstOrDefaultAsync(sr => sr.Id == id);
 
-            if (serviceRequest == null)
+			if (serviceRequest == null)
                 return NotFound(new { message = $"Service request with ID {id} not found" });
 
             var dto = new ServiceRequestDto
             {
                 Id = serviceRequest.Id,
                 ContractId = serviceRequest.ContractId,
-                Description = serviceRequest.Description,
+				ContractServiceLevel = serviceRequest.Contract?.ServiceLevel,
+				ContractStatus = (int?)serviceRequest.Contract?.Status,
+				Description = serviceRequest.Description,
                 Cost = serviceRequest.Cost,
                 Status = (int)serviceRequest.Status,
                 AmountUsd = serviceRequest.AmountUsd,
@@ -82,11 +87,15 @@ namespace GLMS.Web_POE.Api.Controllers
             if (!contractExists)
                 return BadRequest(new { message = $"Contract with ID {createDto.ContractId} not found" });
 
+            var cost = createDto.Cost;
+            if (cost == 0 && createDto.AmountUsd.HasValue && createDto.ExchangeRate.HasValue)
+                cost = Math.Round(createDto.AmountUsd.Value * createDto.ExchangeRate.Value, 2);
+
             var serviceRequest = new ServiceRequest
             {
                 ContractId = createDto.ContractId,
                 Description = createDto.Description,
-                Cost = createDto.Cost,
+                Cost = cost,
                 Status = ServiceRequestStatus.Pending,
                 AmountUsd = createDto.AmountUsd,
                 ExchangeRate = createDto.ExchangeRate,
@@ -141,8 +150,45 @@ namespace GLMS.Web_POE.Api.Controllers
 
             return Ok(dto);
         }
+		[HttpPut("{id}")]
+		public async Task<ActionResult<ServiceRequestDto>> UpdateServiceRequest(
+	int id,
+	[FromBody] ServiceRequestDto dto)
+		{
+			var serviceRequest = await _context.ServiceRequests.FindAsync(id);
 
-        [HttpDelete("{id}")]
+			if (serviceRequest == null)
+				return NotFound(new { message = $"Service request with ID {id} not found" });
+
+			// Validate enum safely
+			if (!Enum.IsDefined(typeof(ServiceRequestStatus), dto.Status))
+				return BadRequest(new { message = "Invalid status value" });
+
+			serviceRequest.ContractId = dto.ContractId;
+			serviceRequest.Description = dto.Description;
+			serviceRequest.AmountUsd = dto.AmountUsd;
+			serviceRequest.ExchangeRate = dto.ExchangeRate;
+			serviceRequest.Cost = dto.Cost;
+			serviceRequest.Status = (ServiceRequestStatus)dto.Status;
+
+			await _context.SaveChangesAsync();
+
+			var updatedDto = new ServiceRequestDto
+			{
+				Id = serviceRequest.Id,
+				ContractId = serviceRequest.ContractId,
+				Description = serviceRequest.Description,
+				Cost = serviceRequest.Cost,
+				Status = (int)serviceRequest.Status,
+				AmountUsd = serviceRequest.AmountUsd,
+				ExchangeRate = serviceRequest.ExchangeRate,
+				CreatedAt = serviceRequest.CreatedAt
+			};
+
+			return Ok(updatedDto);
+		}
+
+		[HttpDelete("{id}")]
         public async Task<IActionResult> DeleteServiceRequest(int id)
         {
             var serviceRequest = await _context.ServiceRequests.FindAsync(id);

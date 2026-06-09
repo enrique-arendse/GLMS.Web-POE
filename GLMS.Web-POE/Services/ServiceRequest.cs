@@ -1,53 +1,107 @@
-﻿using GLMS.Web_POE.Data;
-using GLMS.Web_POE.Models;
-using Microsoft.EntityFrameworkCore;
+﻿using GLMS.Web_POE.Models;
+using GLMS.Web_POE.Services;
+using System.Net.Http.Json;
+using System.Text.Json;
 
-namespace GLMS.Web_POE.Services
+public class ServiceRequestService : IServiceRequest
 {
-	public class ServiceRequestService : IServiceRequestService
+	private readonly HttpClient _http;
+	private static readonly JsonSerializerOptions JsonOptions = new()
 	{
-		private readonly ApplicationDbContext _context;
-		private readonly ICurrencyService _currencyService;
-		private readonly IContractService _contractService;
+		PropertyNameCaseInsensitive = true
+	};
 
-		public ServiceRequestService(
-			ApplicationDbContext context,
-			ICurrencyService currencyService,
-			IContractService contractService)
+	public ServiceRequestService(HttpClient http)
+	{
+		_http = http;
+	}
+
+	public async Task<List<ServiceRequest>> GetAllAsync()
+	{
+		var dtos = await _http.GetFromJsonAsync<List<ServiceRequestApiDto>>("api/servicerequests", JsonOptions)
+			   ?? new List<ServiceRequestApiDto>();
+		return dtos.Select(MapToModel).ToList();
+	}
+
+	public async Task<ServiceRequest?> GetByIdAsync(int id)
+	{
+		var dto = await _http.GetFromJsonAsync<ServiceRequestApiDto>($"api/servicerequests/{id}", JsonOptions);
+		return dto == null ? null : MapToModel(dto);
+	}
+
+	public async Task<ServiceRequest> CreateAsync(int contractId, string description, decimal amountUsd, decimal exchangeRate, decimal cost)
+	{
+		var dto = new
 		{
-			_context = context;
-			_currencyService = currencyService;
-			_contractService = contractService;
-		}
+			contractId,
+			description,
+			amountUsd,
+			exchangeRate,
+			cost
+		};
 
-		public async Task<ServiceRequest> CreateAsync(int contractId, string description, decimal amountUsd)
+		var response = await _http.PostAsJsonAsync("api/servicerequests", dto);
+		response.EnsureSuccessStatusCode();
+
+		var created = await response.Content.ReadFromJsonAsync<ServiceRequestApiDto>(JsonOptions);
+		return MapToModel(created!);
+	}
+
+	public async Task UpdateAsync(int id, ServiceRequest request)
+	{
+		var dto = new ServiceRequestApiDto
 		{
-			var contract = await _context.Contracts
-				.FirstOrDefaultAsync(c => c.Id == contractId);
+			Id = request.Id,
+			ContractId = request.ContractId,
+			Description = request.Description,
+			AmountUsd = request.AmountUsd,
+			ExchangeRate = request.ExchangeRate,
+			Cost = request.Cost,
+			Status = (int)request.Status,
+			CreatedAt = request.CreatedAt
+		};
 
-			if (contract == null)
-				throw new InvalidOperationException("Contract not found.");
+		var response = await _http.PutAsJsonAsync($"api/servicerequests/{id}", dto);
+		response.EnsureSuccessStatusCode();
+	}
 
-			if (!_contractService.CanCreateServiceRequest(contract))
-				throw new InvalidOperationException("Cannot create a service request for an Expired or On Hold contract.");
+	public async Task DeleteAsync(int id)
+	{
+		var response = await _http.DeleteAsync($"api/servicerequests/{id}");
+		response.EnsureSuccessStatusCode();
+	}
 
-			var rate = await _currencyService.GetUsdToZarRateAsync();
-			var zarCost = _currencyService.ConvertUsdToZar(amountUsd, rate);
-
-			var serviceRequest = new ServiceRequest
-			{
-				ContractId = contractId,
-				Description = description,
-				AmountUsd = amountUsd,
-				ExchangeRate = rate,
-				Cost = zarCost,
-				Status = ServiceRequestStatus.Pending
-			};
-
-			_context.ServiceRequests.Add(serviceRequest);
-			await _context.SaveChangesAsync();
-
-			return serviceRequest;
+	private static ServiceRequest MapToModel(ServiceRequestApiDto dto) => new()
+	{
+		Id = dto.Id,
+		ContractId = dto.ContractId,
+		Contract = !string.IsNullOrEmpty(dto.ContractServiceLevel)
+		? new Contract
+		{
+			Id = dto.ContractId,
+			ServiceLevel = dto.ContractServiceLevel,
+			Status = (ContractStatus)(dto.ContractStatus ?? 0) 
 		}
+		: null,
+		Description = dto.Description,
+		AmountUsd = dto.AmountUsd,
+		ExchangeRate = dto.ExchangeRate,
+		Cost = dto.Cost,
+		Status = (ServiceRequestStatus)dto.Status,
+		CreatedAt = dto.CreatedAt
+	};
+
+	private sealed class ServiceRequestApiDto
+	{
+		public int Id { get; set; }
+		public int ContractId { get; set; }
+		public string? ContractServiceLevel { get; set; }
+		public int? ContractStatus { get; set; }
+		public string Description { get; set; } = string.Empty;
+		public decimal Cost { get; set; }
+		public int Status { get; set; }
+		public decimal? AmountUsd { get; set; }
+		public decimal? ExchangeRate { get; set; }
+		public DateTime CreatedAt { get; set; }
 	}
 }

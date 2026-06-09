@@ -4,6 +4,8 @@ namespace GLMS.Web_POE.Api.DTOs
 	{
 		public int Id { get; set; }
 		public int ContractId { get; set; }
+		public string? ContractServiceLevel { get; set; }
+		public int? ContractStatus { get; set; }
 		public string Description { get; set; } = string.Empty;
 		public decimal Cost { get; set; }
 		public int Status { get; set; }

@@ -1,129 +1,137 @@
 using GLMS.Web_POE.Data;
-using Microsoft.AspNetCore.Builder;
+using GLMS.Web_POE.Models;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using System.Net;
+using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Xunit;
 
-namespace GLMS.Tests
+namespace GLMS.Tests.Integration
 {
-	public class CustomWebApplicationFactory<TProgram>
-		: WebApplicationFactory<TProgram> where TProgram : class
+	public class ApiWebApplicationFactory : WebApplicationFactory<GLMS.Web_POE.Api.Program>
 	{
 		protected override void ConfigureWebHost(IWebHostBuilder builder)
 		{
-			// Set environment to Test
 			builder.UseEnvironment("Test");
 
-			builder.ConfigureServices(services =>
-			{
-				// Remove the SQL Server DbContext registration if it exists
-				var sqlDescriptors = services
-					.Where(s => s.ServiceType == typeof(DbContextOptions<ApplicationDbContext>))
-					.ToList();
-
-				foreach (var descriptor in sqlDescriptors)
-				{
-					services.Remove(descriptor);
-				}
-
-				// Add in-memory database
-				services.AddDbContext<ApplicationDbContext>(options =>
-				{
-					options.UseInMemoryDatabase("TestDb");
-				});
-
-				// Build service provider and seed data
-				var sp = services.BuildServiceProvider();
-				using var scope = sp.CreateScope();
-				var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
-				db.Database.EnsureCreated();
-				SeedTestData(db);
-			});
 		}
 
-		private void SeedTestData(ApplicationDbContext db)
+		internal static void SeedTestData(ApplicationDbContext db)
 		{
 			if (db.Clients.Any())
 				return;
 
-			var client1 = new GLMS.Web_POE.Models.Client
+			var client = new Client
 			{
-				Name = "Test Client 1",
-				ContactDetails = "contact@test1.com",
-				Region = "North"
+				Name = "Test Client",
+				ContactDetails = "contact@test.com",
+				Region = "Gauteng"
 			};
 
-			var client2 = new GLMS.Web_POE.Models.Client
-			{
-				Name = "Test Client 2",
-				ContactDetails = "contact@test2.com",
-				Region = "South"
-			};
-
-			db.Clients.AddRange(client1, client2);
+			db.Clients.Add(client);
 			db.SaveChanges();
 
-			var contract1 = new GLMS.Web_POE.Models.Contract
+			db.Contracts.Add(new Contract
 			{
-				ClientId = client1.Id,
+				ClientId = client.Id,
 				StartDate = DateTime.UtcNow.AddDays(1),
 				EndDate = DateTime.UtcNow.AddDays(365),
-				Status = GLMS.Web_POE.Models.ContractStatus.Active,
+				Status = ContractStatus.Active,
 				ServiceLevel = "Premium"
-			};
+			});
 
-			var contract2 = new GLMS.Web_POE.Models.Contract
-			{
-				ClientId = client2.Id,
-				StartDate = DateTime.UtcNow.AddDays(1),
-				EndDate = DateTime.UtcNow.AddDays(180),
-				Status = GLMS.Web_POE.Models.ContractStatus.Draft,
-				ServiceLevel = "Standard"
-			};
-
-			db.Contracts.AddRange(contract1, contract2);
 			db.SaveChanges();
 		}
 	}
 
-	public class ContractApiIntegrationTests : IClassFixture<CustomWebApplicationFactory<Program>>
+	public class ContractApiIntegrationTests : IClassFixture<ApiWebApplicationFactory>
 	{
 		private readonly HttpClient _client;
-
-		public ContractApiIntegrationTests(CustomWebApplicationFactory<Program> factory)
+		private readonly JsonSerializerOptions _jsonOptions = new()
 		{
+			PropertyNameCaseInsensitive = true
+		};
+
+		public ContractApiIntegrationTests(ApiWebApplicationFactory factory)
+		{
+			using (var scope = factory.Services.CreateScope())
+			{
+				var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
+				db.Database.EnsureCreated();
+				ApiWebApplicationFactory.SeedTestData(db);
+			}
+
 			_client = factory.CreateClient();
+		}
+
+		private async Task AuthenticateAsync()
+		{
+			var tokenResponse = await _client.PostAsync("/api/auth/token?username=admin", null);
+			tokenResponse.EnsureSuccessStatusCode();
+
+			var token = await tokenResponse.Content.ReadFromJsonAsync<TokenResponse>(_jsonOptions);
+			Assert.NotNull(token);
+			Assert.False(string.IsNullOrWhiteSpace(token.Token));
+
+			_client.DefaultRequestHeaders.Authorization =
+				new AuthenticationHeaderValue("Bearer", token.Token);
 		}
 
 		[Fact]
 		public async Task GetContracts_ShouldReturnSuccessStatusCode()
 		{
-			// Arrange - Test MVC frontend is healthy
-			// Act - Test that the MVC app is healthy
-			var response = await _client.GetAsync("/");
+			await AuthenticateAsync();
 
-			// Assert
-			Assert.True(response.IsSuccessStatusCode || response.StatusCode == System.Net.HttpStatusCode.Redirect,
-				$"Expected success but got {response.StatusCode}");
+			var response = await _client.GetAsync("/api/contracts");
+
+			Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+			var contracts = await response.Content.ReadFromJsonAsync<List<ContractDto>>(_jsonOptions);
+			Assert.NotNull(contracts);
+			Assert.NotEmpty(contracts);
 		}
 
 		[Fact]
-		public async Task HomePage_ShouldLoad()
+		public async Task CreateClient_ThenGetClient_ShouldPersistData()
 		{
-			// Act
-			var response = await _client.GetAsync("/");
+			await AuthenticateAsync();
 
-			// Assert
-			Assert.True(response.IsSuccessStatusCode || response.StatusCode == System.Net.HttpStatusCode.Redirect);
+			var createDto = new CreateClientDto
+			{
+				Name = "Integration Client",
+				ContactDetails = "integration@example.com",
+				Region = "Western Cape"
+			};
+
+			var createResponse = await _client.PostAsJsonAsync("/api/clients", createDto);
+			Assert.Equal(HttpStatusCode.Created, createResponse.StatusCode);
+
+			var createdClient = await createResponse.Content.ReadFromJsonAsync<ClientDto>(_jsonOptions);
+			Assert.NotNull(createdClient);
+			Assert.True(createdClient.Id > 0);
+			Assert.Equal(createDto.Name, createdClient.Name);
+
+			var getResponse = await _client.GetAsync($"/api/clients/{createdClient.Id}");
+			Assert.Equal(HttpStatusCode.OK, getResponse.StatusCode);
+
+			var fetchedClient = await getResponse.Content.ReadFromJsonAsync<ClientDto>(_jsonOptions);
+			Assert.NotNull(fetchedClient);
+			Assert.Equal(createdClient.Id, fetchedClient.Id);
+			Assert.Equal(createDto.ContactDetails, fetchedClient.ContactDetails);
+		}
+
+		[Fact]
+		public async Task GetContracts_WithoutToken_ShouldReturnUnauthorized()
+		{
+			var response = await _client.GetAsync("/api/contracts");
+			Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
 		}
 	}
 
-	// DTOs for testing
 	internal class ContractDto
 	{
 		public int Id { get; set; }
@@ -133,21 +141,21 @@ namespace GLMS.Tests
 		public DateTime EndDate { get; set; }
 		public int Status { get; set; }
 		public string ServiceLevel { get; set; } = string.Empty;
-		public string? SignedAgreementFileName { get; set; }
 	}
 
-	internal class CreateContractDto
+	internal class ClientDto
 	{
-		public int ClientId { get; set; }
-		public DateTime StartDate { get; set; }
-		public DateTime EndDate { get; set; }
-		public int Status { get; set; }
-		public string ServiceLevel { get; set; } = string.Empty;
+		public int Id { get; set; }
+		public string Name { get; set; } = string.Empty;
+		public string ContactDetails { get; set; } = string.Empty;
+		public string Region { get; set; } = string.Empty;
 	}
 
-	internal class UpdateContractStatusDto
+	internal class CreateClientDto
 	{
-		public int Status { get; set; }
+		public string Name { get; set; } = string.Empty;
+		public string ContactDetails { get; set; } = string.Empty;
+		public string Region { get; set; } = string.Empty;
 	}
 
 	internal class TokenResponse

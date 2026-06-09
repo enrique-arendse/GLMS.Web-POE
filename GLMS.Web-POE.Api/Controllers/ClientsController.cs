@@ -1,9 +1,8 @@
 ﻿using GLMS.Web_POE.Api.DTOs;
-using GLMS.Web_POE.Data;
+using GLMS.Web_POE.Api.Repositories;
 using GLMS.Web_POE.Models;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace GLMS.Web_POE.Api.Controllers
 {
@@ -12,46 +11,29 @@ namespace GLMS.Web_POE.Api.Controllers
     [Route("api/[controller]")]
     public class ClientsController : ControllerBase
     {
-        private readonly ApplicationDbContext _context;
+        private readonly IClientRepository _clientRepository;
 
-        public ClientsController(ApplicationDbContext context)
+        public ClientsController(IClientRepository clientRepository)
         {
-            _context = context;
+            _clientRepository = clientRepository;
         }
 
         [HttpGet]
         public async Task<ActionResult<IEnumerable<ClientDto>>> GetClients()
         {
-            var clients = await _context.Clients.ToListAsync();
-
-            var clientDtos = clients.Select(c => new ClientDto
-            {
-                Id = c.Id,
-                Name = c.Name,
-                ContactDetails = c.ContactDetails,
-                Region = c.Region
-            }).ToList();
-
-            return Ok(clientDtos);
+            var clients = await _clientRepository.GetAllAsync();
+            return Ok(clients.Select(MapToDto).ToList());
         }
 
         [HttpGet("{id}")]
         public async Task<ActionResult<ClientDto>> GetClient(int id)
         {
-            var client = await _context.Clients.FindAsync(id);
+            var client = await _clientRepository.GetByIdAsync(id);
 
             if (client == null)
                 return NotFound(new { message = $"Client with ID {id} not found" });
 
-            var clientDto = new ClientDto
-            {
-                Id = client.Id,
-                Name = client.Name,
-                ContactDetails = client.ContactDetails,
-                Region = client.Region
-            };
-
-            return Ok(clientDto);
+            return Ok(MapToDto(client));
         }
 
         [HttpPost]
@@ -67,24 +49,14 @@ namespace GLMS.Web_POE.Api.Controllers
                 Region = createClientDto.Region
             };
 
-            _context.Clients.Add(client);
-            await _context.SaveChangesAsync();
-
-            var clientDto = new ClientDto
-            {
-                Id = client.Id,
-                Name = client.Name,
-                ContactDetails = client.ContactDetails,
-                Region = client.Region
-            };
-
-            return CreatedAtAction(nameof(GetClient), new { id = client.Id }, clientDto);
+            var created = await _clientRepository.AddAsync(client);
+            return CreatedAtAction(nameof(GetClient), new { id = created.Id }, MapToDto(created));
         }
 
         [HttpPut("{id}")]
         public async Task<ActionResult<ClientDto>> UpdateClient(int id, [FromBody] UpdateClientDto updateClientDto)
         {
-            var client = await _context.Clients.FindAsync(id);
+            var client = await _clientRepository.GetByIdAsync(id);
 
             if (client == null)
                 return NotFound(new { message = $"Client with ID {id} not found" });
@@ -96,31 +68,27 @@ namespace GLMS.Web_POE.Api.Controllers
             client.ContactDetails = updateClientDto.ContactDetails;
             client.Region = updateClientDto.Region;
 
-            await _context.SaveChangesAsync();
-
-            var clientDto = new ClientDto
-            {
-                Id = client.Id,
-                Name = client.Name,
-                ContactDetails = client.ContactDetails,
-                Region = client.Region
-            };
-
-            return Ok(clientDto);
+            var updated = await _clientRepository.UpdateAsync(client);
+            return Ok(MapToDto(updated));
         }
 
         [HttpDelete("{id}")]
         public async Task<IActionResult> DeleteClient(int id)
         {
-            var client = await _context.Clients.FindAsync(id);
+            var deleted = await _clientRepository.DeleteAsync(id);
 
-            if (client == null)
+            if (!deleted)
                 return NotFound(new { message = $"Client with ID {id} not found" });
-
-            _context.Clients.Remove(client);
-            await _context.SaveChangesAsync();
 
             return NoContent();
         }
+
+        private static ClientDto MapToDto(Client client) => new()
+        {
+            Id = client.Id,
+            Name = client.Name,
+            ContactDetails = client.ContactDetails,
+            Region = client.Region
+        };
     }
 }

@@ -47,11 +47,14 @@ namespace GLMS.Web_POE.Api.Controllers
                 Id = c.Id,
                 ClientId = c.ClientId,
                 ClientName = c.Client?.Name,
-                StartDate = c.StartDate,
+				ClientRegion = c.Client?.Region,
+				ClientContactDetails = c.Client?.ContactDetails,
+				StartDate = c.StartDate,
                 EndDate = c.EndDate,
                 Status = (int)c.Status,
                 ServiceLevel = c.ServiceLevel,
-                SignedAgreementFileName = c.SignedAgreementFileName
+                SignedAgreementFileName = c.SignedAgreementFileName,
+                SignedAgreementFilePath = c.SignedAgreementFilePath
             }).ToList();
 
             return Ok(contractDtos);
@@ -72,11 +75,14 @@ namespace GLMS.Web_POE.Api.Controllers
                 Id = contract.Id,
                 ClientId = contract.ClientId,
                 ClientName = contract.Client?.Name,
-                StartDate = contract.StartDate,
+				ClientRegion = contract.Client?.Region,
+				ClientContactDetails = contract.Client?.ContactDetails,
+				StartDate = contract.StartDate,
                 EndDate = contract.EndDate,
                 Status = (int)contract.Status,
                 ServiceLevel = contract.ServiceLevel,
-                SignedAgreementFileName = contract.SignedAgreementFileName
+                SignedAgreementFileName = contract.SignedAgreementFileName,
+                SignedAgreementFilePath = contract.SignedAgreementFilePath
             };
 
             return Ok(contractDto);
@@ -101,7 +107,9 @@ namespace GLMS.Web_POE.Api.Controllers
                 StartDate = createContractDto.StartDate,
                 EndDate = createContractDto.EndDate,
                 Status = (ContractStatus)createContractDto.Status,
-                ServiceLevel = createContractDto.ServiceLevel
+                ServiceLevel = createContractDto.ServiceLevel,
+                SignedAgreementFileName = createContractDto.SignedAgreementFileName,
+                SignedAgreementFilePath = createContractDto.SignedAgreementFilePath
             };
 
             _context.Contracts.Add(contract);
@@ -114,14 +122,69 @@ namespace GLMS.Web_POE.Api.Controllers
                 Id = contract.Id,
                 ClientId = contract.ClientId,
                 ClientName = client?.Name,
-                StartDate = contract.StartDate,
+				ClientRegion = client?.Region,
+				ClientContactDetails = client?.ContactDetails,
+				StartDate = contract.StartDate,
                 EndDate = contract.EndDate,
                 Status = (int)contract.Status,
                 ServiceLevel = contract.ServiceLevel,
-                SignedAgreementFileName = contract.SignedAgreementFileName
+                SignedAgreementFileName = contract.SignedAgreementFileName,
+                SignedAgreementFilePath = contract.SignedAgreementFilePath
             };
 
             return CreatedAtAction(nameof(GetContract), new { id = contract.Id }, contractDto);
+        }
+
+        [HttpPut("{id}")]
+        public async Task<ActionResult<ContractDto>> UpdateContract(int id, [FromBody] UpdateContractDto updateContractDto)
+        {
+            var contract = await _context.Contracts
+                .Include(c => c.Client)
+                .FirstOrDefaultAsync(c => c.Id == id);
+
+            if (contract == null)
+                return NotFound(new { message = $"Contract with ID {id} not found" });
+
+            if (!ModelState.IsValid)
+                return BadRequest(ModelState);
+
+            if (updateContractDto.EndDate <= updateContractDto.StartDate)
+                return BadRequest(new { message = "End date must be after start date" });
+
+            var clientExists = await _context.Clients.AnyAsync(c => c.Id == updateContractDto.ClientId);
+            if (!clientExists)
+                return BadRequest(new { message = $"Client with ID {updateContractDto.ClientId} not found" });
+
+            contract.ClientId = updateContractDto.ClientId;
+            contract.StartDate = updateContractDto.StartDate;
+            contract.EndDate = updateContractDto.EndDate;
+            contract.Status = (ContractStatus)updateContractDto.Status;
+            contract.ServiceLevel = updateContractDto.ServiceLevel;
+
+            if (!string.IsNullOrEmpty(updateContractDto.SignedAgreementFileName))
+                contract.SignedAgreementFileName = updateContractDto.SignedAgreementFileName;
+
+            if (!string.IsNullOrEmpty(updateContractDto.SignedAgreementFilePath))
+                contract.SignedAgreementFilePath = updateContractDto.SignedAgreementFilePath;
+
+            await _context.SaveChangesAsync();
+
+            var contractDto = new ContractDto
+            {
+                Id = contract.Id,
+                ClientId = contract.ClientId,
+                ClientName = contract.Client?.Name,
+				ClientRegion = contract.Client?.Region,
+				ClientContactDetails = contract.Client?.ContactDetails,
+				StartDate = contract.StartDate,
+                EndDate = contract.EndDate,
+                Status = (int)contract.Status,
+                ServiceLevel = contract.ServiceLevel,
+                SignedAgreementFileName = contract.SignedAgreementFileName,
+                SignedAgreementFilePath = contract.SignedAgreementFilePath
+            };
+
+            return Ok(contractDto);
         }
 
         [HttpPatch("{id}/status")]
@@ -145,11 +208,14 @@ namespace GLMS.Web_POE.Api.Controllers
                 Id = contract.Id,
                 ClientId = contract.ClientId,
                 ClientName = contract.Client?.Name,
+                ClientRegion = contract.Client?.Region,
+                ClientContactDetails = contract.Client?.ContactDetails,
                 StartDate = contract.StartDate,
                 EndDate = contract.EndDate,
                 Status = (int)contract.Status,
                 ServiceLevel = contract.ServiceLevel,
-                SignedAgreementFileName = contract.SignedAgreementFileName
+                SignedAgreementFileName = contract.SignedAgreementFileName,
+                SignedAgreementFilePath = contract.SignedAgreementFilePath
             };
 
             return Ok(contractDto);

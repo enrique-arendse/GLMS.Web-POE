@@ -5,13 +5,13 @@
 }
 
 <!-- Page Header -->
-<div class="page-header" style="background-image: url('/images/pages/service-banner.png'); background-size: cover; background-position: center 35%; border-radius: 0.75rem; padding: 7rem 2rem; color: white;">
+<div class="page-header page-header--services">
     <div class="d-flex justify-content-between align-items-start flex-wrap gap-3">
         <div>
-            <h1 class="mb-2" style="color: white !important;">
+            <h1 class="mb-2">
                 <i class="fa-solid fa-tasks me-2"></i>Service Requests Management
             </h1>
-            <p class="mb-0" style="color: rgba(255,255,255,0.85) !important;">
+            <p class="mb-0">
                 Track shipments, manage invoicing, and monitor request status with real-time currency conversion.
             </p>
         </div>
@@ -87,7 +87,7 @@
                     <thead>
                         <tr>
                             <th class="text-start">
-                                <i class="fa-solid fa-file-lines me-2"></i>Description & Priority
+                                <i class="fa-solid fa-file-lines me-2"></i>Description
                             </th>
                             <th class="text-center">
                                 <i class="fa-solid fa-box me-2"></i>Contract Level
@@ -115,19 +115,7 @@
                         {
                             <tr>
                                 <td class="text-start">
-                                    <div class="d-flex align-items-center gap-3">
-                                        <div class="avatar-placeholder rounded-circle bg-warning bg-opacity-10 p-2">
-                                            <i class="fa-solid fa-clipboard text-warning"></i>
-                                        </div>
-                                        <div>
-                                            <strong>@Html.DisplayFor(modelItem => item.Description)</strong>
-                                            <div class="mt-2">
-                                                <span class="badge bg-warning p-2">
-                                                    <i class="fa-solid fa-flag me-1"></i>Standard
-                                                </span>
-                                            </div>
-                                        </div>
-                                    </div>
+                                    @item.Description
                                 </td>
                                 <td class="text-center">
                                     @if (item.Contract != null)

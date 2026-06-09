@@ -13,21 +13,26 @@ namespace GLMS.Web_POE.Services
 
 		public async Task<decimal> GetUsdToZarRateAsync()
 		{
-			var url = "https://open.er-api.com/v6/latest/USD";
+			try
+			{
+				var url = "https://open.er-api.com/v6/latest/USD";
 
-			using var response = await _httpClient.GetAsync(url);
-			response.EnsureSuccessStatusCode();
+				using var response = await _httpClient.GetAsync(url);
+				response.EnsureSuccessStatusCode();
 
-			var json = await response.Content.ReadAsStringAsync();
+				var json = await response.Content.ReadAsStringAsync();
 
-			using var document = JsonDocument.Parse(json);
+				using var document = JsonDocument.Parse(json);
 
-			var rate = document.RootElement
-				.GetProperty("rates")
-				.GetProperty("ZAR")
-				.GetDecimal();
-
-			return rate;
+				return document.RootElement
+					.GetProperty("rates")
+					.GetProperty("ZAR")
+					.GetDecimal();
+			}
+			catch
+			{
+				return 18.50m;
+			}
 		}
 
 		public decimal ConvertUsdToZar(decimal usdAmount, decimal exchangeRate)

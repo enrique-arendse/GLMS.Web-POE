@@ -2,8 +2,12 @@
 
 namespace GLMS.Web_POE.Services
 {
-	public interface IServiceRequestService
+	public interface IServiceRequest
 	{
-		Task<ServiceRequest> CreateAsync(int contractId, string description, decimal amountUsd);
+		Task<List<ServiceRequest>> GetAllAsync();
+		Task<ServiceRequest?> GetByIdAsync(int id);
+		Task<ServiceRequest> CreateAsync(int contractId, string description, decimal amountUsd, decimal exchangeRate, decimal cost);
+		Task UpdateAsync(int id, ServiceRequest serviceRequest);
+		Task DeleteAsync(int id);
 	}
 }

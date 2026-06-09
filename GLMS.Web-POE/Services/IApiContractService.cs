@@ -9,6 +9,7 @@ namespace GLMS.Web_POE.Services
 		Task<IEnumerable<Contract>> GetContractsAsync(int? status = null, int? clientId = null, DateTime? startDate = null, DateTime? endDate = null);
 		Task<Contract?> GetContractAsync(int id);
 		Task<Contract> CreateContractAsync(Contract contract);
+		Task<Contract> UpdateContractAsync(int id, Contract contract);
 		Task<Contract> UpdateContractStatusAsync(int id, int status);
 		Task<bool> DeleteContractAsync(int id);
 	}
@@ -17,6 +18,11 @@ namespace GLMS.Web_POE.Services
 	{
 		private readonly HttpClient _httpClient;
 		private readonly ILogger<ApiContractService> _logger;
+
+		private static readonly JsonSerializerOptions JsonOptions = new()
+		{
+			PropertyNameCaseInsensitive = true
+		};
 
 		public ApiContractService(HttpClient httpClient, ILogger<ApiContractService> logger)
 		{
@@ -43,17 +49,8 @@ namespace GLMS.Web_POE.Services
 					return new List<Contract>();
 				}
 
-				var contracts = await response.Content.ReadFromJsonAsync<List<ContractApiDto>>(new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-				return contracts?.Select(c => new Contract
-				{
-					Id = c.Id,
-					ClientId = c.ClientId,
-					StartDate = c.StartDate,
-					EndDate = c.EndDate,
-					Status = (ContractStatus)c.Status,
-					ServiceLevel = c.ServiceLevel,
-					SignedAgreementFileName = c.SignedAgreementFileName
-				}).ToList() ?? new List<Contract>();
+				var contracts = await response.Content.ReadFromJsonAsync<List<ContractApiDto>>(JsonOptions);
+				return contracts?.Select(MapToContract).ToList() ?? new List<Contract>();
 			}
 			catch (Exception ex)
 			{
@@ -70,20 +67,8 @@ namespace GLMS.Web_POE.Services
 				if (!response.IsSuccessStatusCode)
 					return null;
 
-				var contractDto = await response.Content.ReadFromJsonAsync<ContractApiDto>(new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-				if (contractDto == null)
-					return null;
-
-				return new Contract
-				{
-					Id = contractDto.Id,
-					ClientId = contractDto.ClientId,
-					StartDate = contractDto.StartDate,
-					EndDate = contractDto.EndDate,
-					Status = (ContractStatus)contractDto.Status,
-					ServiceLevel = contractDto.ServiceLevel,
-					SignedAgreementFileName = contractDto.SignedAgreementFileName
-				};
+				var contractDto = await response.Content.ReadFromJsonAsync<ContractApiDto>(JsonOptions);
+				return contractDto == null ? null : MapToContract(contractDto);
 			}
 			catch (Exception ex)
 			{
@@ -102,23 +87,44 @@ namespace GLMS.Web_POE.Services
 					StartDate = contract.StartDate,
 					EndDate = contract.EndDate,
 					Status = (int)contract.Status,
-					ServiceLevel = contract.ServiceLevel
+					ServiceLevel = contract.ServiceLevel,
+					SignedAgreementFileName = contract.SignedAgreementFileName,
+					SignedAgreementFilePath = contract.SignedAgreementFilePath
 				};
 
 				var response = await _httpClient.PostAsJsonAsync("api/contracts", createDto);
 				response.EnsureSuccessStatusCode();
 
-				var contractDto = await response.Content.ReadFromJsonAsync<ContractApiDto>(new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-				return new Contract
+				var contractDto = await response.Content.ReadFromJsonAsync<ContractApiDto>(JsonOptions);
+				return MapToContract(contractDto!);
+			}
+			catch (Exception ex)
+			{
+				_logger.LogError($"Error calling API: {ex.Message}");
+				throw;
+			}
+		}
+
+		public async Task<Contract> UpdateContractAsync(int id, Contract contract)
+		{
+			try
+			{
+				var updateDto = new UpdateContractApiDto
 				{
-					Id = contractDto!.Id,
-					ClientId = contractDto.ClientId,
-					StartDate = contractDto.StartDate,
-					EndDate = contractDto.EndDate,
-					Status = (ContractStatus)contractDto.Status,
-					ServiceLevel = contractDto.ServiceLevel,
-					SignedAgreementFileName = contractDto.SignedAgreementFileName
+					ClientId = contract.ClientId,
+					StartDate = contract.StartDate,
+					EndDate = contract.EndDate,
+					Status = (int)contract.Status,
+					ServiceLevel = contract.ServiceLevel,
+					SignedAgreementFileName = contract.SignedAgreementFileName,
+					SignedAgreementFilePath = contract.SignedAgreementFilePath
 				};
+
+				var response = await _httpClient.PutAsJsonAsync($"api/contracts/{id}", updateDto);
+				response.EnsureSuccessStatusCode();
+
+				var contractDto = await response.Content.ReadFromJsonAsync<ContractApiDto>(JsonOptions);
+				return MapToContract(contractDto!);
 			}
 			catch (Exception ex)
 			{
@@ -135,17 +141,8 @@ namespace GLMS.Web_POE.Services
 				var response = await _httpClient.PatchAsJsonAsync($"api/contracts/{id}/status", updateDto);
 				response.EnsureSuccessStatusCode();
 
-				var contractDto = await response.Content.ReadFromJsonAsync<ContractApiDto>(new JsonSerializerOptions { PropertyNameCaseInsensitive = true });
-				return new Contract
-				{
-					Id = contractDto!.Id,
-					ClientId = contractDto.ClientId,
-					StartDate = contractDto.StartDate,
-					EndDate = contractDto.EndDate,
-					Status = (ContractStatus)contractDto.Status,
-					ServiceLevel = contractDto.ServiceLevel,
-					SignedAgreementFileName = contractDto.SignedAgreementFileName
-				};
+				var contractDto = await response.Content.ReadFromJsonAsync<ContractApiDto>(JsonOptions);
+				return MapToContract(contractDto!);
 			}
 			catch (Exception ex)
 			{
@@ -167,19 +164,42 @@ namespace GLMS.Web_POE.Services
 				return false;
 			}
 		}
+
+		private static Contract MapToContract(ContractApiDto dto) => new()
+		{
+			Id = dto.Id,
+			ClientId = dto.ClientId,
+			Client = !string.IsNullOrEmpty(dto.ClientName)
+				? new Client
+				{
+				Id = dto.ClientId,
+				Name = dto.ClientName,
+				Region = dto.ClientRegion,                
+				ContactDetails = dto.ClientContactDetails 
+				}
+				: null,
+			StartDate = dto.StartDate,
+			EndDate = dto.EndDate,
+			Status = (ContractStatus)dto.Status,
+			ServiceLevel = dto.ServiceLevel,
+			SignedAgreementFileName = dto.SignedAgreementFileName,
+			SignedAgreementFilePath = dto.SignedAgreementFilePath
+		};
 	}
 
-	// DTOs for API communication
 	internal class ContractApiDto
 	{
 		public int Id { get; set; }
 		public int ClientId { get; set; }
 		public string? ClientName { get; set; }
+		public string? ClientRegion { get; set; }           
+		public string? ClientContactDetails { get; set; }
 		public DateTime StartDate { get; set; }
 		public DateTime EndDate { get; set; }
 		public int Status { get; set; }
 		public string ServiceLevel { get; set; } = string.Empty;
 		public string? SignedAgreementFileName { get; set; }
+		public string? SignedAgreementFilePath { get; set; }
 	}
 
 	internal class CreateContractApiDto
@@ -189,6 +209,19 @@ namespace GLMS.Web_POE.Services
 		public DateTime EndDate { get; set; }
 		public int Status { get; set; }
 		public string ServiceLevel { get; set; } = string.Empty;
+		public string? SignedAgreementFileName { get; set; }
+		public string? SignedAgreementFilePath { get; set; }
+	}
+
+	internal class UpdateContractApiDto
+	{
+		public int ClientId { get; set; }
+		public DateTime StartDate { get; set; }
+		public DateTime EndDate { get; set; }
+		public int Status { get; set; }
+		public string ServiceLevel { get; set; } = string.Empty;
+		public string? SignedAgreementFileName { get; set; }
+		public string? SignedAgreementFilePath { get; set; }
 	}
 
 	internal class UpdateContractStatusApiDto

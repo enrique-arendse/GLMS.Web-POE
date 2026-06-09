@@ -4,7 +4,6 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.Mvc.Rendering;
-using GLMS.Web_POE.Data;
 using GLMS.Web_POE.Models;
 using GLMS.Web_POE.Services;
 using GLMS.Web_POE.ViewModels;
@@ -16,18 +15,21 @@ namespace GLMS.Web_POE.Controllers
         private readonly IApiContractService _apiContractService;
         private readonly IApiClientService _apiClientService;
         private readonly IFileService _fileService;
-        private readonly ILogger<ContractsController> _logger;
+		private readonly IWebHostEnvironment _environment;
+		private readonly ILogger<ContractsController> _logger;
 
         public ContractsController(
             IApiContractService apiContractService,
             IApiClientService apiClientService,
             IFileService fileService,
-            ILogger<ContractsController> logger)
+			IWebHostEnvironment environment,
+			ILogger<ContractsController> logger)
         {
             _apiContractService = apiContractService;
             _apiClientService = apiClientService;
             _fileService = fileService;
-            _logger = logger;
+			_environment = environment;
+			_logger = logger;
         }
 
         // GET: Contracts
@@ -193,13 +195,13 @@ namespace GLMS.Web_POE.Controllers
                             return View(contract);
                         }
                     }
-
-                    // Update status only through PATCH endpoint for status changes
-                    if (contract.Status != existingContract.Status)
+                    else
                     {
-                        await _apiContractService.UpdateContractStatusAsync(id, (int)contract.Status);
+                        contract.SignedAgreementFileName = existingContract.SignedAgreementFileName;
+                        contract.SignedAgreementFilePath = existingContract.SignedAgreementFilePath;
                     }
 
+                    await _apiContractService.UpdateContractAsync(id, contract);
                     return RedirectToAction(nameof(Index));
                 }
                 catch (Exception ex)
@@ -268,12 +270,16 @@ namespace GLMS.Web_POE.Controllers
             try
             {
                 var contract = await _apiContractService.GetContractAsync(id.Value);
-                if (contract == null || string.IsNullOrEmpty(contract.SignedAgreementFilePath))
+                var relativePath = contract.SignedAgreementFilePath;
+                if (string.IsNullOrEmpty(relativePath) && !string.IsNullOrEmpty(contract.SignedAgreementFileName))
+                    relativePath = Path.Combine("uploads", "agreements", contract.SignedAgreementFileName).Replace("\\", "/");
+
+                if (string.IsNullOrEmpty(relativePath))
                     return NotFound();
 
-                var filePath = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot", contract.SignedAgreementFilePath);
+				var filePath = Path.Combine(_environment.WebRootPath, relativePath);
 
-                if (!System.IO.File.Exists(filePath))
+				if (!System.IO.File.Exists(filePath))
                     return NotFound();
 
                 var fileBytes = System.IO.File.ReadAllBytes(filePath);

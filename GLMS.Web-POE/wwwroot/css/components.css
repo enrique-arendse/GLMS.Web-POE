@@ -479,32 +479,6 @@
 	background-clip: text;
 }
 
-/* ===== HOVER EFFECTS ===== */
-.hover-shadow {
-	transition: box-shadow 0.3s ease;
-}
-
-.hover-shadow:hover {
-	box-shadow: var(--shadow-lg);
-}
-
-.hover-lift {
-	transition: all 0.3s ease;
-}
-
-.hover-lift:hover {
-	transform: translateY(-4px);
-	box-shadow: var(--shadow-lg);
-}
-
-.hover-glow {
-	transition: all 0.3s ease;
-}
-
-.hover-glow:hover {
-	box-shadow: 0 0 20px rgba(0, 82, 204, 0.3);
-}
-
 /* ===== FADE IN ANIMATION ===== */
 .fade-in {
 	animation: fadeIn 0.5s ease-in;

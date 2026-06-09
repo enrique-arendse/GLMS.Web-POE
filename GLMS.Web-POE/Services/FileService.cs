@@ -22,7 +22,7 @@
 				return false;
 
 			var extension = Path.GetExtension(file.FileName).ToLowerInvariant();
-			return extension == ".pdf" && file.ContentType == "application/pdf";
+			return extension == ".pdf";
 		}
 
 		public async Task<(string fileName, string filePath)> SaveAgreementAsync(IFormFile file)

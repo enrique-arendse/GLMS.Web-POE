@@ -10,8 +10,6 @@
             <h1 class="mb-4">Edit Contract</h1>
 
             <form asp-action="Edit" enctype="multipart/form-data" method="post">
-                <div asp-validation-summary="All" class="alert alert-danger" role="alert"></div>
-
                 <input type="hidden" asp-for="Id" />
 
                 <div class="form-group mb-3">
@@ -56,7 +54,11 @@
                     <div class="col-md-6">
                         <div class="form-group mb-3">
                             <label asp-for="ServiceLevel" class="form-label">Service Level <span class="text-danger">*</span></label>
-                            <input asp-for="ServiceLevel" class="form-control" placeholder="e.g., Premium, Standard" required />
+                            <select asp-for="ServiceLevel" class="form-select" required>
+                                <option value="">-- Select Service Level --</option>
+                                <option value="Premium">Premium</option>
+                                <option value="Standard">Standard</option>
+                            </select>
                             <span asp-validation-for="ServiceLevel" class="text-danger small"></span>
                         </div>
                     </div>

@@ -1,39 +1,42 @@
-using GLMS.Web_POE.Data;
-using Microsoft.EntityFrameworkCore;
 using GLMS.Web_POE.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllersWithViews();
 
-// Register API services
-builder.Services.AddHttpClient<IApiContractService, ApiContractService>(client =>
+var apiBaseUrl = builder.Configuration["ApiSettings:BaseUrl"] ?? "http://glms-backend-api:7001";
+
+// Plain client used only to fetch JWT tokens (no auth handler attached)
+builder.Services.AddHttpClient("ApiAuth", client =>
 {
-	var apiBaseUrl = builder.Configuration["ApiSettings:BaseUrl"] ?? "https://localhost:7001";
 	client.BaseAddress = new Uri(apiBaseUrl);
 	client.DefaultRequestHeaders.Add("Accept", "application/json");
 });
 
-builder.Services.AddHttpClient<IApiClientService, ApiClientService>(client =>
+builder.Services.AddTransient<ApiAuthTokenHandler>();
+
+void RegisterAuthenticatedApiClient<TClient, TImplementation>()
+	where TClient : class
+	where TImplementation : class, TClient
 {
-	var apiBaseUrl = builder.Configuration["ApiSettings:BaseUrl"] ?? "https://localhost:7001";
-	client.BaseAddress = new Uri(apiBaseUrl);
-	client.DefaultRequestHeaders.Add("Accept", "application/json");
-});
+	builder.Services.AddHttpClient<TClient, TImplementation>(client =>
+	{
+		client.BaseAddress = new Uri(apiBaseUrl);
+		client.DefaultRequestHeaders.Add("Accept", "application/json");
+	})
+	.AddHttpMessageHandler<ApiAuthTokenHandler>();
+}
+
+RegisterAuthenticatedApiClient<IApiContractService, ApiContractService>();
+RegisterAuthenticatedApiClient<IApiClientService, ApiClientService>();
+RegisterAuthenticatedApiClient<IServiceRequest, ServiceRequestService>();
 
 // Keep file service and currency service - they don't need API changes
 builder.Services.AddHttpClient<ICurrencyService, CurrencyService>();
 builder.Services.AddScoped<IFileService, FileService>();
-builder.Services.AddScoped<IContractService, ContractService>();
-builder.Services.AddScoped<IServiceRequestService, ServiceRequestService>();
 
-// For backward compatibility with existing services
-// Only register SQL Server DbContext if not in test environment
-if (!builder.Environment.EnvironmentName.Contains("Test"))
-{
-	builder.Services.AddDbContext<ApplicationDbContext>(options =>
-		options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
-}
+
+
 
 var app = builder.Build();
 
@@ -43,7 +46,11 @@ if (!app.Environment.IsDevelopment())
 	app.UseHsts();
 }
 
-app.UseHttpsRedirection();
+if (app.Environment.IsDevelopment())
+{
+	app.UseHttpsRedirection();
+}
+
 app.UseStaticFiles();
 
 app.UseRouting();
